@@ -1,2 +1,2 @@
 # returnName
-Speckle Hackaton team
+Speckle Hackathon team
