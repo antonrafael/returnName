@@ -5,13 +5,13 @@ for the scope of the virtual hackathon
 
 ![Into The Speckleverse](https://speckle.systems/content/images/size/w2000/2022/03/preview.png)
 
-The team is composed by four Civil Engineers with a strong background on Software Development:
+The international team is composed by four Civil Engineers with a strong background in Software Development:
 - [Rafael Anton](https://github.com/antonrafael) (Joinville, Brazil / GMT-3)
 - [Chen Chih Yuan](https://github.com/ChenChihYuan) (Tokyo, Japan / GMT+9)
 - [Luis Otero](https://github.com/alonsooteroseminario) (Vancouver, Canada / GMT-7)
 - [Carlos Villagrasa](https://github.com/cvillagrasa) (Barcelona, Spain / GMT+2)
 
-Yes, we tried to maximize the timezone difference to have always at least one member awake and 
+Yes, we tried to maximize the timezone difference in order to have always at least one member awake and 
 ready to code the awesome. 
 
 ## Hack description
