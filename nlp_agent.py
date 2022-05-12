@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from collections import OrderedDict
 import re
 import pandas as pd
 from transformers import pipeline
@@ -57,6 +58,7 @@ class NLPField(NLPModelsHelper):
         except IndexError:
             return None, None
         unit = ''.join([letter for letter in amount if letter.isalnum() and not letter.isdigit()])
+        unit = 'm' if unit == '' else unit  # defaulting to meters
         return float(number), unit
 
     def on_fail(self, item, parsed_items=None):
@@ -67,6 +69,14 @@ class NLPField(NLPModelsHelper):
         txt += f'I could not understand which {item} you are talking about. '
         txt += f'Would you mind to rephrase it in a clear way for me and try again? Thanks in advance!'
         return txt
+
+    def discard_items(self, parsed_items):
+        return {key: value for key, value in parsed_items.items() if key not in self.parsed_items_to_discard}
+
+    @staticmethod
+    def parse_amount(parsed_items):
+        parsed_items['number'], parsed_items['unit'] = parsed_items['number_unit']
+        return parsed_items
 
 
 @dataclass
@@ -95,6 +105,39 @@ class NLPStructuralField(NLPField):
         question = f'By how much?'
         return self.question_answerer(question, prompt)
 
+    @property
+    def nlp_recipe(self):
+        return OrderedDict({
+            'element': {
+                'func': self.which_element,
+                'args': 'prompt'
+            },
+            'element_name': {
+                'func': self.element_name,
+                'args': ['prompt', 'element']
+            },
+            'action': {
+                'func': self.action,
+                'args': ['prompt', 'element', 'element_name']
+            },
+            'direction': {
+                'func': self.direction,
+                'args': 'action'
+            },
+            'amount': {
+                'func': self.amount,
+                'args': 'action'
+            },
+            'number_unit': {
+                'func': self.amount_breakdown,
+                'args': 'amount'
+            }
+        })
+
+    @property
+    def parsed_items_to_discard(self):
+        return ['prompt', 'action', 'amount', 'number_unit']
+
     @staticmethod
     def summary(parsed_items):
         txt = ''
@@ -115,35 +158,30 @@ class NLPStructuralField(NLPField):
     def on_success(self, parsed_items):
         return f'Hey! Perfect, I understood that {self.summary(parsed_items)}. Doing my job now!'
 
-    def process_prompt(self, prompt):
-        parsed_items = {'success': False}
-        element = self.which_element(prompt)
-        if element is None:
+    def process_one_step(self, value_name, parsed_items, func, args=None):
+        if args is None:
+            args = []
+        else:
+            args = args if isinstance(args, list) else [args]
+            args = [parsed_items[arg] for arg in args]
+        value = func(*args)
+        if value is None:
             return {**parsed_items, **{'answer': self.on_fail('element', parsed_items)}}
-        parsed_items['element'] = element
-        element_name = self.element_name(prompt, element)
-        if element_name is None:
-            return {**parsed_items, **{'answer': self.on_fail('element name', parsed_items)}}
-        parsed_items['element_name'] = element_name
-        action = self.action(prompt, element, element_name)
-        if action is None:
-            return {**parsed_items, **{'answer': self.on_fail('action', parsed_items)}}
-        direction = self.direction(action)
-        if direction is None:
-            return {**parsed_items, **{'answer': self.on_fail('direction', parsed_items)}}
-        parsed_items['direction'] = direction
-        amount = self.amount(action)
-        if amount is None:
-            return {**parsed_items, **{'answer': self.on_fail('amount', parsed_items)}}
-        parsed_items['amount'] = amount
-        number, unit = self.amount_breakdown(amount)
-        if number is None:
-            return {**parsed_items, **{'answer': self.on_fail('figure (number)', parsed_items)}}
-        parsed_items['number'] = number
-        if unit == '':
-            unit = 'm'  # defaulting to meters
-        parsed_items['unit'] = unit
-        parsed_items['success']: True
+        parsed_items[value_name] = value
+        return parsed_items
+
+    def process_prompt(self, prompt):
+        parsed_items = {'success': False, 'prompt': prompt}
+        for step_name, step_data in self.nlp_recipe.items():
+            func = step_data['func']
+            args = step_data['args'] if 'args' in step_data else []
+            parsed_items = self.process_one_step(step_name, parsed_items, func, args)
+            if step_name not in parsed_items:
+                return self.discard_items(parsed_items)
+
+        parsed_items['success'] = True
+        parsed_items = self.parse_amount(parsed_items)
+        parsed_items = self.discard_items(parsed_items)
         return {**parsed_items, **{'answer': self.on_success(parsed_items)}}
 
 
