@@ -210,14 +210,15 @@ class NLPMepField(NLPField):
 
 @dataclass
 class NLPAgent(NLPModelsHelper):
+
     def __post_init__(self):
         self.fields = self.setup_fields()
         self.nlp_models = NLPModels()
+        self.active_users = {}
 
-    def setup_fields(self):
-        structural = NLPStructuralField()
-        mep = NLPMepField()
-        return [structural, mep]
+    @staticmethod
+    def setup_fields():
+        return [NLPStructuralField(), NLPMepField()]
 
     @property
     def all_field_names(self):
@@ -247,6 +248,20 @@ class NLPAgent(NLPModelsHelper):
         related_field = self.which_field(related_field)
         field = self.field_by_name(related_field)
         return {**{'field': related_field}, **field.process_prompt(prompt)}
+
+    def push_prompt(self, user, prompt):
+        if user in self.active_users:
+            if self.active_users[user]:
+                if self.zero_shot(prompt, 'yes'):
+                    return {'answer': 'Ok, green light then! doing my job now...'}
+                else:
+                    return {'answer': 'No? Ok, noted! If you happen to change your mind, here I am!'}
+            self.active_users[user] = False
+        else:
+            request = self.process_prompt(prompt)
+            if 'success' in request and request['success']:
+                self.active_users['user'] = True
+            return request
 
 
 if __name__ == '__main__':
