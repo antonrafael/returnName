@@ -3,7 +3,7 @@ from pathlib import Path
 
 path = Path().resolve().parent.parent
 sys.path.append(str(path))
-from returnName.nlp_agent import NLPAgent
+from returnName.nlp.nlp_agent import NLPAgent
 
 nlp_agent = NLPAgent()
 user = sys.argv[1]
