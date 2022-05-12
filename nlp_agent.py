@@ -252,16 +252,15 @@ class NLPAgent(NLPModelsHelper):
     def push_prompt(self, user, prompt):
         if user in self.active_users:
             if self.active_users[user]:
+                self.active_users[user] = False
                 if self.zero_shot(prompt, 'yes'):
                     return {'answer': 'Ok, green light then! doing my job now...'}
                 else:
                     return {'answer': 'No? Ok, noted! If you happen to change your mind, here I am!'}
-            self.active_users[user] = False
-        else:
-            request = self.process_prompt(prompt)
-            if 'success' in request and request['success']:
-                self.active_users['user'] = True
-            return request
+        request = self.process_prompt(prompt)
+        if 'success' in request and request['success']:
+            self.active_users['user'] = True
+        return request
 
 
 if __name__ == '__main__':
