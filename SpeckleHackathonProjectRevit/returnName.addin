@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+	<AddIn Type="Application">
+		<Name>Return Name</Name>
+		<FullClassName>SpeckleHackathonProjectRevit.Main</FullClassName>
+		<Assembly>C:\ProgramData\Autodesk\Revit\Addins\2022\returnName\SpeckleHackathonProjectRevit.dll</Assembly>
+		<AddInId>9766A8EC-F624-4B07-84B0-D6696E98A3CB</AddInId>
+		<VendorId>Return Name Team</VendorId>
+	</AddIn>
+</RevitAddIns>
