@@ -8,8 +8,8 @@ class NLPModels:
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(NLPModels, cls).__new__(cls)
-            cls.zero_shot = pipeline('zero-shot-classification')
-            cls.question_answerer = pipeline('question-answering')
+            cls.zero_shot = pipeline('zero-shot-classification', model='facebook/bart-large-mnli')
+            cls.question_answerer = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
         return cls.instance
 
 
@@ -50,6 +50,24 @@ class NLPField(NLPModelsHelper):
                     return True
             return False
 
+    @staticmethod
+    def amount_breakdown(amount):
+        try:
+            number = re.findall(r'(?<![a-zA-Z:])[-+]?\d*\.?\d+', amount)[0]
+        except IndexError:
+            return None, None
+        unit = ''.join([letter for letter in amount if letter.isalnum() and not letter.isdigit()])
+        return float(number), unit
+
+    def on_fail(self, item, parsed_items=None):
+        if parsed_items is None:
+            txt = 'Sorry, '
+        else:
+            txt = f'Hey! I understood you are referring to {self.summary(parsed_items)}. However, '
+        txt += f'I could not understand which {item} you are talking about. '
+        txt += f'Would you mind to rephrase it in a clear way for me and try again? Thanks in advance!'
+        return txt
+
 
 @dataclass
 class NLPStructuralField(NLPField):
@@ -60,7 +78,7 @@ class NLPStructuralField(NLPField):
 
     def which_element(self, prompt):
         candidate = self.zero_shot_multiple(prompt, self.elements)
-        return candidate # if self.zero_shot(prompt, candidate) else None
+        return candidate if self.zero_shot(prompt, candidate) else None
 
     def element_name(self, prompt, element):
         question = f'Which is the name of the {element}?'
@@ -77,19 +95,56 @@ class NLPStructuralField(NLPField):
         question = f'By how much?'
         return self.question_answerer(question, prompt)
 
-    def amount_breakdown(self, amount):
-        number = re.findall(r'(?<![a-zA-Z:])[-+]?\d*\.?\d+', amount)[0]
-        unit = ''.join([letter for letter in amount if not letter.isdigit()])
-        return number, unit
+    @staticmethod
+    def summary(parsed_items):
+        txt = ''
+        if 'element' not in parsed_items:
+            return txt
+        txt += f'a {parsed_items["element"]}'
+        if 'element_name' not in parsed_items:
+            return txt
+        txt += f' named {parsed_items["element_name"]}'
+        if 'direction' not in parsed_items:
+            return txt
+        txt += f' is requested to be moved {parsed_items["direction"]}'
+        if 'number' not in parsed_items:
+            return txt
+        txt += f' by {parsed_items["number"]} {parsed_items["unit"]}'
+        return txt
+
+    def on_success(self, parsed_items):
+        return f'Hey! Perfect, I understood that {self.summary(parsed_items)}. Doing my job now!'
 
     def process_prompt(self, prompt):
+        parsed_items = {'success': False}
         element = self.which_element(prompt)
+        if element is None:
+            return {**parsed_items, **{'answer': self.on_fail('element', parsed_items)}}
+        parsed_items['element'] = element
         element_name = self.element_name(prompt, element)
+        if element_name is None:
+            return {**parsed_items, **{'answer': self.on_fail('element name', parsed_items)}}
+        parsed_items['element_name'] = element_name
         action = self.action(prompt, element, element_name)
+        if action is None:
+            return {**parsed_items, **{'answer': self.on_fail('action', parsed_items)}}
         direction = self.direction(action)
+        if direction is None:
+            return {**parsed_items, **{'answer': self.on_fail('direction', parsed_items)}}
+        parsed_items['direction'] = direction
         amount = self.amount(action)
+        if amount is None:
+            return {**parsed_items, **{'answer': self.on_fail('amount', parsed_items)}}
+        parsed_items['amount'] = amount
         number, unit = self.amount_breakdown(amount)
-        return {'element': element, 'name': element_name, 'direction': direction, 'number': number, 'unit': unit}
+        if number is None:
+            return {**parsed_items, **{'answer': self.on_fail('figure (number)', parsed_items)}}
+        parsed_items['number'] = number
+        if unit == '':
+            unit = 'm'  # defaulting to meters
+        parsed_items['unit'] = unit
+        parsed_items['success']: True
+        return {**parsed_items, **{'answer': self.on_success(parsed_items)}}
 
 
 structural = NLPStructuralField(name='structural')
