@@ -40,7 +40,49 @@ class NLPField(NLPModelsHelper):
 
     def __post_init__(self):
         super().__post_init__()
+        self.directions = ['up', 'down', 'front', 'back', 'left', 'right']
         self.other_names = [] if self.other_names is None else self.other_names
+
+    @property
+    def nlp_recipe(self):
+        return OrderedDict({
+            'element': {
+                'func': self.which_element,
+                'args': 'prompt'
+            },
+            'element_name': {
+                'func': self.element_name,
+                'args': ['prompt', 'element']
+            },
+            'action': {
+                'func': self.action,
+                'args': ['prompt', 'element', 'element_name']
+            },
+            'direction': {
+                'func': self.direction,
+                'args': 'prompt'
+            },
+            'amount': {
+                'func': self.amount,
+                'args': 'action'
+            },
+            'number_unit': {
+                'func': self.amount_breakdown,
+                'args': 'amount',
+                'readable_value_name': 'amount'
+            }
+        })
+
+    @property
+    def parsed_items_to_discard(self):
+        return ['prompt', 'action', 'amount', 'number_unit']
+
+    @property
+    def all_field_names(self):
+        return [self.name] if len(self.other_names) == 0 else self.other_names
+
+    def belongs(self, name):
+        return True if name in self.all_field_names else False
 
     def found_inside(self, prompt):
         if self.zero_shot(prompt, self.name):
@@ -62,10 +104,6 @@ class NLPField(NLPModelsHelper):
 
     def action(self, prompt, element, element_name):
         question = f'What should we do with the {element} {element_name}?'
-        return self.question_answerer(question, prompt)
-
-    def overall_direction(self, prompt):
-        question = f'To where?'
         return self.question_answerer(question, prompt)
 
     def direction(self, prompt):
@@ -102,58 +140,11 @@ class NLPField(NLPModelsHelper):
         parsed_items['number'], parsed_items['unit'] = parsed_items['number_unit']
         return parsed_items
 
-
-@dataclass
-class NLPStructuralField(NLPField):
-    def __post_init__(self):
-        super().__post_init__()
-        self.elements = ['wall', 'slab', 'beam', 'column']
-        self.directions = ['up', 'down', 'front', 'back', 'left', 'right']
-
-    @property
-    def nlp_recipe(self):
-        return OrderedDict({
-            'element': {
-                'func': self.which_element,
-                'args': 'prompt'
-            },
-            'element_name': {
-                'func': self.element_name,
-                'args': ['prompt', 'element']
-            },
-            'action': {
-                'func': self.action,
-                'args': ['prompt', 'element', 'element_name']
-            },
-            'overall_direction': {
-                'func': self.overall_direction,
-                'args': ['prompt'],
-                'readable_value_name': 'direction'
-            },
-            'direction': {
-                'func': self.direction,
-                'args': 'overall_direction'
-            },
-            'amount': {
-                'func': self.amount,
-                'args': 'action'
-            },
-            'number_unit': {
-                'func': self.amount_breakdown,
-                'args': 'amount',
-                'readable_value_name': 'amount'
-            }
-        })
-
-    @property
-    def parsed_items_to_discard(self):
-        return ['prompt', 'action', 'overall_direction', 'amount', 'number_unit']
-
     @staticmethod
     def summary(parsed_items):
         txt = ''
         if 'element' not in parsed_items:
-            return txt
+            return 'you are placing a request'
         txt += f'a {parsed_items["element"]}'
         if 'element_name' not in parsed_items:
             return txt
@@ -167,7 +158,9 @@ class NLPStructuralField(NLPField):
         return txt
 
     def on_success(self, parsed_items):
-        return f'Hey! Perfect, I understood that {self.summary(parsed_items)}. Doing my job now!'
+        txt = f'Hey there! Perfect, I understood that {self.summary(parsed_items)}. '
+        txt += f'Do you want to commit that action to the Speckle Server?'
+        return txt
 
     def process_one_step(self, value_name, parsed_items, func, args=None, readable_value_name=None):
         if args is None:
@@ -199,24 +192,61 @@ class NLPStructuralField(NLPField):
 
 
 @dataclass
+class NLPStructuralField(NLPField):
+    def __post_init__(self):
+        super().__post_init__()
+        self.name = 'structural'
+        self.elements = ['wall', 'slab', 'beam', 'column']
+
+
+@dataclass
+class NLPMepField(NLPField):
+    def __post_init__(self):
+        super().__post_init__()
+        self.name = 'mep'
+        self.other_names = ['mechanical', 'electrical', 'plumbing', 'fire protection']
+        self.elements = ['duct', 'pipe', 'tray']
+
+
+@dataclass
 class NLPAgent(NLPModelsHelper):
     def __post_init__(self):
         self.fields = self.setup_fields()
         self.nlp_models = NLPModels()
 
     def setup_fields(self):
-        structural = NLPStructuralField(name='structural')
-        mep = NLPField(name='MEP', other_names=['mechanical', 'electrical', 'plumbing', 'fire protection'])
+        structural = NLPStructuralField()
+        mep = NLPMepField()
         return [structural, mep]
+
+    @property
+    def all_field_names(self):
+        names = []
+        for field in self.fields:
+            names.extend(field.all_field_names)
+        return names
+
+    def which_field(self, name):
+        for field in self.fields:
+            if field.belongs(name):
+                return field.name
+        return None
+
+    def field_by_name(self, name):
+        for field in self.fields:
+            if field.name == name:
+                return field
+        return None
 
     def process_prompt(self, prompt):
         if not self.zero_shot(prompt, candidate_label='request'):
-            answer = 'Please, a request must be placed.'
+            answer = f'Hey! I can only accept requests to move elements within a BIM model. '
+            answer += f"I didn't understand very well what you said. Could you please try again?"
             return {'success': False, 'answer': answer}
-        for field in self.fields:
-            if field.found_inside(prompt):
-                return field.process_prompt(prompt)
-        return None
+        related_field = self.zero_shot_multiple(prompt, self.all_field_names)
+        related_field = self.which_field(related_field)
+        field = self.field_by_name(related_field)
+        return {**{'field': related_field}, **field.process_prompt(prompt)}
 
 
 if __name__ == '__main__':
@@ -224,7 +254,8 @@ if __name__ == '__main__':
         'Please, lower by 0.2 m the height of beam B125',
         'Can you move 0.5m to the front a wall W15?',
         'Displace column C27 one meter to the left, please',
-        'Displace column C27 1 m to the left, please'
+        'Displace column C27 1 m to the left, please',
+        'Change the position of duct D01 by moving it back 32 cm, please'
     ]
 
     nlp_agent = NLPAgent()
