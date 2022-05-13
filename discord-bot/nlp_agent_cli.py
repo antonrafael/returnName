@@ -2,11 +2,12 @@ import sys
 from pathlib import Path
 import json
 
+
+debug = False
+
 path = Path().resolve().parent.parent
 sys.path.append(str(path))
 from returnName.nlp.nlp_agent import NLPAgent
-
-debug = False
 
 nlp_agent = NLPAgent()
 user = sys.argv[1]

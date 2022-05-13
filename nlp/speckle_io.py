@@ -71,5 +71,5 @@ class BotCommit(Base):
 
 if __name__ == '__main__':
     bc = BotCommit(user_id='123', request={'field': 'structural', 'success': True, 'element': 'beam', 'element_name': 'B125', 'direction': 'down', 'number': 0.2, 'unit': 'm', 'answer': 'Hey there! Perfect, I understood that a beam named B125 is requested to be moved down by 0.2 m. Do you want to commit that action to the Speckle Server?'})
-    connection = SpeckleConnection(token=token, stream_id='d44d853c60')
+    connection = SpeckleConnection(token=token, stream_id='8e6d1d1c53')
     connection.send_to_stream(bc, 'testing custom Speckle Object')

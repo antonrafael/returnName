@@ -28,7 +28,7 @@ client.on('messageCreate', async message => {
 
         let result;
         app.get('/', (req, res) => {
-            const nlp_agent_py = spawn('python', ['-m', 'nlp_agent_cli.py', userName, userRequest]);
+            const nlp_agent_py = spawn('python', ['-m', 'nlp_agent_cli', userName, userRequest]);
             nlp_agent_py.stdout.on('data', function (data) {
                 result = data.toString();
             });

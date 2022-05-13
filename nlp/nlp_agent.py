@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from collections import OrderedDict
+from pathlib import Path
 import copy
 import json
 import re
 import pandas as pd
 from transformers import pipeline
-
 
 
 class NLPModels:
@@ -214,11 +214,29 @@ class NLPMepField(NLPField):
 
 @dataclass
 class NLPAgent(NLPModelsHelper):
+    active_users_filename: str = 'active_users.json'
 
     def __post_init__(self):
         self.fields = self.setup_fields()
         self.nlp_models = NLPModels()
-        self.active_users = {}
+        self.active_users = self.load_active_users()
+
+    @property
+    def active_users_path(self):
+        return Path().resolve() / self.active_users_filename
+
+    def load_active_users(self):
+        if self.active_users_path.exists():
+            with open(self.active_users_path, 'r+') as f:
+                active_users = json.load(f)
+        else:
+            active_users = {}
+        return active_users
+
+    def save_active_users(self):
+        print(f'Saving to:\n{self.active_users_path}')
+        with open(self.active_users_path, 'w') as f:
+            json.dump(self.active_users, f)
 
     @staticmethod
     def setup_fields():
@@ -258,13 +276,15 @@ class NLPAgent(NLPModelsHelper):
         if user in self.active_users:
             if self.active_users[user]:
                 self.active_users[user] = False
+                self.save_active_users()
                 if self.zero_shot(prompt, 'yes'):
                     return {'answer': 'Ok, green light then! doing my job now...'}
                 else:
                     return {'answer': 'No? Ok, noted! If you happen to change your mind, here I am!'}
         request = self.process_prompt(prompt, user_name=user)
         if 'success' in request and request['success']:
-            self.active_users['user'] = True
+            self.active_users[user] = True
+            self.save_active_users()
         if debug:
             req = copy.deepcopy(request)
             req['input_user'] = user
