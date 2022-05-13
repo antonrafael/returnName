@@ -21,7 +21,8 @@ class SpeckleConnection:
         self.client = SpeckleClient(host=self.server)
         self.account = get_account_from_token(self.token, self.server)
         self.client.authenticate_with_account(self.account)
-        self.setup_server_transport()
+        if self.stream_id != '':
+            self.setup_server_transport()
 
     @property
     def streams(self):
@@ -32,6 +33,17 @@ class SpeckleConnection:
 
     def commits_from_stream(self, stream_id, limit=100):
         return self.client.commit.list(stream_id, limit=limit)
+
+    def new_stream_id(self, name):
+        return self.client.stream.create(name=name)
+
+    def new_stream(self, name):
+        stream_id = self.new_stream_id(name)
+        return self.get_stream(stream_id)
+
+    def set_new_stream(self, name):
+        self.stream_id = self.new_stream_id(name)
+        self.setup_server_transport()
 
     def stream_by_name(self, name):
         return self.client.stream.search(name)[0]
@@ -48,7 +60,7 @@ class SpeckleConnection:
         return commit_id
 
 
-@dataclass()
+@dataclass
 class BotCommit(Base):
     user_id: str
     request: object
@@ -59,5 +71,5 @@ class BotCommit(Base):
 
 if __name__ == '__main__':
     bc = BotCommit(user_id='123', request={'answer': 'this is a test'})
-    connection = SpeckleConnection(token=token, stream_id='a2e12c1fc9')
+    connection = SpeckleConnection(token=token, stream_id='d44d853c60')
     connection.send_to_stream(bc, 'testing custom Speckle Object')
