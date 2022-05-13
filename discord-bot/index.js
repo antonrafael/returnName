@@ -4,6 +4,8 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_
 const express = require('express');
 const {spawn} = require('child_process');
 const axios = require('axios');
+const httpTerminator = require('http-terminator');
+
 
 const app = express();
 const port = 3000;
@@ -12,28 +14,32 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`)
 })
 
+let userName;
+let userRequest;
+
 client.on('messageCreate', async message => {
     const messageContent = message.content;
     const splitMessage = messageContent.split(' ')
 
-    if (splitMessage[0] === '!speckly') {
-        const userName = message.author.username;
+    if (splitMessage[0].toLowerCase() === '!speckly') {
+        userName = message.author.username;
         // const channel = message.channelId;
-        const userRequest = messageContent.substring(messageContent.indexOf(' ') + 1);
+        userRequest = messageContent.substring(messageContent.indexOf(' ') + 1);
 
         let result;
         app.get('/', (req, res) => {
-
-            const nlp_agent_py = spawn('python', ['-m', 'nlp_agent_cli.py', userName, userRequest]);
+            const nlp_agent_py = spawn('python', ['-m', 'nlp_agent_cli', userName, userRequest]);
             nlp_agent_py.stdout.on('data', function (data) {
                 result = data.toString();
             });
             nlp_agent_py.on('close', (code) => {
-                console.log(`Process closed stdio with code ${code}`); // send data to browser
+                console.log(result);
                 res.send(result);
             });
         })
-        await app.listen(port, () => console.log(`Message received from ${userName}!`));
+        const server = await app.listen(
+            port,() => console.log(`Message received from ${userName}!\n  -> "${userRequest}"`)
+        );
 
         await axios.get(`http://localhost:${port}/`)
             .then(response => {
@@ -44,6 +50,12 @@ client.on('messageCreate', async message => {
             });
 
         await message.reply(result["answer"]);
+
+        const httpTerminatorElm = httpTerminator.createHttpTerminator({
+            server,
+        });
+        await httpTerminatorElm.terminate();
+        console.log(`Request from ${userName} answered`);
     }
 })
 
