@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 from collections import OrderedDict
+import copy
+import json
 import re
 import pandas as pd
 from transformers import pipeline
+
 
 
 class NLPModels:
@@ -157,8 +160,9 @@ class NLPField(NLPModelsHelper):
         txt += f' by {parsed_items["number"]} {parsed_items["unit"]}'
         return txt
 
-    def on_success(self, parsed_items):
-        txt = f'Hey there! Perfect, I understood that {self.summary(parsed_items)}. '
+    def on_success(self, parsed_items, user_name=None):
+        user_txt = '' if user_name is None else f' @{user_name}'
+        txt = f'Hey there{user_txt}! Perfect, I understood that {self.summary(parsed_items)}. '
         txt += f'Do you want to commit that action to the Speckle Server?'
         return txt
 
@@ -175,7 +179,7 @@ class NLPField(NLPModelsHelper):
         parsed_items[value_name] = value
         return parsed_items
 
-    def process_prompt(self, prompt):
+    def process_prompt(self, prompt, user_name=None):
         parsed_items = {'success': False, 'prompt': prompt}
         for step_name, step_data in self.nlp_recipe.items():
             func = step_data['func']
@@ -188,7 +192,7 @@ class NLPField(NLPModelsHelper):
         parsed_items['success'] = True
         parsed_items = self.parse_amount(parsed_items)
         parsed_items = self.discard_items(parsed_items)
-        return {**parsed_items, **{'answer': self.on_success(parsed_items)}}
+        return {**parsed_items, **{'answer': self.on_success(parsed_items, user_name=user_name)}}
 
 
 @dataclass
@@ -239,17 +243,18 @@ class NLPAgent(NLPModelsHelper):
                 return field
         return None
 
-    def process_prompt(self, prompt):
+    def process_prompt(self, prompt, user_name=None):
+        user_txt = '' if user_name is None else f' @{user_name}'
         if not self.zero_shot(prompt, candidate_label='request'):
-            answer = f'Hey! I can only accept requests to move elements within a BIM model. '
+            answer = f'Hey{user_txt}! I can only accept requests to move elements within a BIM model. '
             answer += f"I didn't understand very well what you said. Could you please try again?"
             return {'success': False, 'answer': answer}
         related_field = self.zero_shot_multiple(prompt, self.all_field_names)
         related_field = self.which_field(related_field)
         field = self.field_by_name(related_field)
-        return {**{'field': related_field}, **field.process_prompt(prompt)}
+        return {**{'field': related_field}, **field.process_prompt(prompt, user_name=user_name)}
 
-    def push_prompt(self, user, prompt):
+    def push_prompt(self, user, prompt, debug=False):
         if user in self.active_users:
             if self.active_users[user]:
                 self.active_users[user] = False
@@ -257,9 +262,16 @@ class NLPAgent(NLPModelsHelper):
                     return {'answer': 'Ok, green light then! doing my job now...'}
                 else:
                     return {'answer': 'No? Ok, noted! If you happen to change your mind, here I am!'}
-        request = self.process_prompt(prompt)
+        request = self.process_prompt(prompt, user_name=user)
         if 'success' in request and request['success']:
             self.active_users['user'] = True
+        if debug:
+            req = copy.deepcopy(request)
+            req['input_user'] = user
+            req['input_prompt'] = prompt
+            with open('data.json', 'w') as f:
+                data = json.dumps(req)
+                json.dump(data, f)
         return request
 
 
