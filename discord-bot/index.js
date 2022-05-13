@@ -1,32 +1,49 @@
 require('dotenv').config()
-const { Client } = require('discord.js')
-const client = new Client()
-
-const express = require('express')
+const { Client, Intents } = require('discord.js');
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+const express = require('express');
 const {spawn} = require('child_process');
-const app = express()
+const axios = require('axios');
+
+const app = express();
+const port = 3000;
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`)
 })
 
-client.on('message', async message => {
-    const splitMessage = message.content.split(' ')
+client.on('messageCreate', async message => {
+    const messageContent = message.content;
+    const splitMessage = messageContent.split(' ')
 
-    if (splitMessage[0] === '!specklebot') {
-        const user = message.user.id
-        const command = splitMessage[1]
+    if (splitMessage[0] === '!speckly') {
+        const userName = message.author.username;
+        // const channel = message.channelId;
+        const userRequest = messageContent.substring(messageContent.indexOf(' ') + 1);
 
-        if (!command) {
-            return
-        }
-        const result = [];
-        const nlp_agent_py = spawn('python', ['nlp_agent_cli.py', user, command]);
-        nlp_agent_py.stdout.on('data', function (data) {
-            result.push(data);
-        });
+        let result;
+        app.get('/', (req, res) => {
 
-        await message.reply(result["answer"])
+            const nlp_agent_py = spawn('python', ['-m', 'nlp_agent_cli.py', userName, userRequest]);
+            nlp_agent_py.stdout.on('data', function (data) {
+                result = data.toString();
+            });
+            nlp_agent_py.on('close', (code) => {
+                console.log(`Process closed stdio with code ${code}`); // send data to browser
+                res.send(result);
+            });
+        })
+        await app.listen(port, () => console.log(`Message received from ${userName}!`));
+
+        await axios.get(`http://localhost:${port}/`)
+            .then(response => {
+                result = response.data;
+            })
+            .catch(e => {
+                console.log(e);
+            });
+
+        await message.reply(result["answer"]);
     }
 })
 
