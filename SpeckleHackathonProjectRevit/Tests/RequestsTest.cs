@@ -11,7 +11,7 @@ namespace SpeckleHackathonProjectRevit.Tests
         public static Request GetTestRequest()
         {
             return
-                new Request("structural", true, "beam", "B1", "down", 0.2, "m", "Answer");
+                new Request("structural", true, "beam", "B30", "right", 0.8, "m", "Answer");
             
         }
     }
