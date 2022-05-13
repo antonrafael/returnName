@@ -8,7 +8,7 @@ namespace SpeckleHackathonProjectRevit.Entities
         public string Field { get; set; }
 
         [JsonProperty("success")]
-        public string Success { get; set; }
+        public bool Success { get; set; }
 
         [JsonProperty("element")]
         public string Element { get; set; }
@@ -20,7 +20,7 @@ namespace SpeckleHackathonProjectRevit.Entities
         public string Direction { get; set; }
 
         [JsonProperty("number")]
-        public string Number { get; set; }
+        public double Number { get; set; }
 
         [JsonProperty("unit")]
         public string Unit { get; set; }
@@ -28,5 +28,18 @@ namespace SpeckleHackathonProjectRevit.Entities
         [JsonProperty("answer")]
         public string Answer { get; set; }
 
+        public Request(string field, bool success, string element, string elementName, string direction, double number, string unit, string answer)
+        {
+            Field = field;
+            Success = success;
+            Element = element;
+            ElementName = elementName;
+            Direction = direction;
+            Number = number;
+            Unit = unit;
+            Answer = answer;
+        }
     }
+
+    
 }
