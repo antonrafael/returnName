@@ -2,6 +2,7 @@
 using Autodesk.Revit.UI;
 using SpeckleHackathonProjectRevit.Tests;
 using SpeckleHackathonProjectRevit.View;
+using SpeckleHackathonProjectRevit.Speckle;
 using System;
 using System.Windows;
 
@@ -31,14 +32,16 @@ namespace SpeckleHackathonProjectRevit.Commands
                 {
                     BeamTests beamTests = new BeamTests();
                     beamTests.doc = doc;
-                    //TaskDialog.Show("Collector Test", beamTests.GetElementsShouldReturnSix(doc).ToString());
-                    //TaskDialog.Show("MoveDown Test", beamTests.MoveElement20cmDown(doc).ToString());
+                    //TaskDialog.Show("Collector Test", beamTests.GetElementsShouldReturnSix().ToString());
+                    //TaskDialog.Show("MoveDown Test", beamTests.MoveElement20cmDown().ToString());
                     //TaskDialog.Show("MoveUp Test", beamTests.MoveElement20cmUp().ToString());
                     //TaskDialog.Show("MoveRight Test", beamTests.MoveElement20cmRight().ToString());
                     //TaskDialog.Show("MoveLeft Test", beamTests.MoveElement20cmLeft().ToString());
                 }
 
                 trans.Commit();
+
+                Extensions.Flatten()
             }
             try
             {
