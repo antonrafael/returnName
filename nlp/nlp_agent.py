@@ -1,11 +1,21 @@
 from dataclasses import dataclass
 from collections import OrderedDict
 from pathlib import Path
+import sys
 import copy
 import json
 import re
 import pandas as pd
 from transformers import pipeline
+
+path = Path().resolve().parent.parent
+sys.path.append(str(path))
+
+from returnName.nlp.speckle_io import SpeckleConnection, BotCommit
+from returnName.nlp.my_token import token
+
+# from speckle_io import SpeckleConnection, BotCommit
+# from my_token import token
 
 
 class NLPModels:
@@ -34,6 +44,51 @@ class NLPModelsHelper:
 
     def question_answerer(self, question, context):
         return self.nlp_models.question_answerer(question=question, context=context)['answer']
+
+
+class BotMessages:
+    @staticmethod
+    def message_welcoming(user_txt):
+        answer = f'Hi{user_txt}! I am Speckly, the friendly agent for your interactions with the Speckle '
+        answer += 'universe. I was created for the scope of the Hackathon *Into The Speckleverse*, in May 2022, '
+        answer += 'by the awesome team *return Name;* and I am ready to translate your words into commits to the '
+        answer += 'Speckle Server. Do you want to start? Great, just tell me a Stream ID and start requiring '
+        answer += 'changes. Remember that you need to start your message with **!speckly** for me to notice. '
+        answer += 'See you around!'
+        return answer
+
+    @staticmethod
+    def message_not_request(user_txt):
+        answer = f'Hey{user_txt}! I can only accept requests to move elements within a BIM model. '
+        answer += f"I didn't understand very well what you said. Could you please try again?"
+        return answer
+
+    @staticmethod
+    def message_linking_stream(user_txt, stream_id):
+        answer = f'Hey there{user_txt}! Alright, from now on, '
+        answer += f"I'm linking the comments I receive on this channel to stream {stream_id}."
+        return answer
+
+    @staticmethod
+    def message_no_stream(user_txt):
+        answer = f'Hey there{user_txt}! Before anything else, someone should tell me to which Speckle Stream I am '
+        answer += 'expected to push my commits within this channel. For more info about me, type '
+        answer += '**!speckly hello**.'
+        return answer
+
+    @staticmethod
+    def message_connection_error(user_txt):
+        answer = f'Sorry{user_txt}, an error occurred while attempting to commit to the Speckle Server. '
+        answer += f'Please, kindly revise the data and try again.'
+        return answer
+
+    @staticmethod
+    def message_commit_ok(user_txt, commit_id):
+        return f'Ok{user_txt}, green light then! your request has been committed (id: {commit_id})'
+
+    @staticmethod
+    def message_commit_not_ok(user_txt):
+        return f'No? Ok{user_txt}, noted! If you happen to change your mind, here I am!'
 
 
 @dataclass
@@ -213,30 +268,57 @@ class NLPMepField(NLPField):
 
 
 @dataclass
-class NLPAgent(NLPModelsHelper):
+class NLPAgent(NLPModelsHelper, BotMessages):
     active_users_filename: str = 'active_users.json'
+    channel_streams_filename: str = 'channel_streams.json'
+    connection: ... = None
 
     def __post_init__(self):
         self.fields = self.setup_fields()
         self.nlp_models = NLPModels()
         self.active_users = self.load_active_users()
+        self.channel_streams = self.load_channel_streams()
 
     @property
     def active_users_path(self):
         return Path().resolve() / self.active_users_filename
 
-    def load_active_users(self):
-        if self.active_users_path.exists():
-            with open(self.active_users_path, 'r+') as f:
-                active_users = json.load(f)
+    @property
+    def channel_streams_path(self):
+        return Path().resolve() / self.channel_streams_filename
+
+    @staticmethod
+    def load_json(filepath):
+        if filepath.exists():
+            with open(filepath, 'r+') as f:
+                json_data = json.load(f)
         else:
-            active_users = {}
-        return active_users
+            json_data = {}
+        return json_data
+
+    def load_active_users(self):
+        return self.load_json(self.active_users_path)
+
+    def load_channel_streams(self):
+        return self.load_json(self.channel_streams_path)
+
+    @staticmethod
+    def save_json(json_data, filepath):
+        with open(filepath, 'w') as f:
+            json.dump(json_data, f)
 
     def save_active_users(self):
-        print(f'Saving to:\n{self.active_users_path}')
-        with open(self.active_users_path, 'w') as f:
-            json.dump(self.active_users, f)
+        self.save_json(self.active_users, self.active_users_path)
+
+    def save_channel_streams(self):
+        self.save_json(self.channel_streams, self.channel_streams_path)
+
+    def setup_connection(self, stream_id):
+        self.connection = SpeckleConnection(token=token, stream_id=stream_id)
+
+    def commit(self, user_id, request):
+        bot_commit = BotCommit(user_id=user_id, request=request)
+        return self.connection.send_to_stream(bot_commit, f'Request from {user_id} in the chat')
 
     @staticmethod
     def setup_fields():
@@ -261,38 +343,67 @@ class NLPAgent(NLPModelsHelper):
                 return field
         return None
 
-    def process_prompt(self, prompt, user_name=None):
+    def process_prompt(self, prompt, user_name=None, channel_id=None):
         user_txt = '' if user_name is None else f' @{user_name}'
         if not self.zero_shot(prompt, candidate_label='request'):
-            answer = f'Hey{user_txt}! I can only accept requests to move elements within a BIM model. '
-            answer += f"I didn't understand very well what you said. Could you please try again?"
-            return {'success': False, 'answer': answer}
+            return {'success': False, 'answer': self.message_not_request(user_txt)}
+        if 'stream' in prompt:
+            stream_id = self.question_answerer('what is the stream id?', prompt)
+            stream_id = stream_id.split()[-1]
+            if len(stream_id) == 10:
+                self.channel_streams[channel_id] = stream_id
+                self.save_channel_streams()
+                return {'success': False, 'answer': self.message_linking_stream(user_txt, stream_id)}
+            elif channel_id not in self.channel_streams:
+                return {'success': False, 'answer': self.message_not_request(user_txt)}
         related_field = self.zero_shot_multiple(prompt, self.all_field_names)
         related_field = self.which_field(related_field)
         field = self.field_by_name(related_field)
         return {**{'field': related_field}, **field.process_prompt(prompt, user_name=user_name)}
 
-    def push_prompt(self, user, prompt, debug=False):
+    def push_prompt(self, user, prompt, channel_id, debug=False):
+        user_txt = '' if user is None else f' @{user}'
+        if prompt.lower() == 'hello':
+            return {'answer': self.message_welcoming(user_txt)}
+        if channel_id not in self.channel_streams and 'stream' not in prompt:
+            return {'answer': self.message_no_stream(user_txt)}
         if user in self.active_users:
-            if self.active_users[user]:
-                self.active_users[user] = False
-                self.save_active_users()
-                if self.zero_shot(prompt, 'yes'):
-                    return {'answer': 'Ok, green light then! doing my job now...'}
-                else:
-                    return {'answer': 'No? Ok, noted! If you happen to change your mind, here I am!'}
-        request = self.process_prompt(prompt, user_name=user)
+            second_comment = self.check_if_second_comment(user, user_txt, channel_id, prompt)
+            if second_comment is not None:
+                return second_comment
+        request = self.process_prompt(prompt, user_name=user, channel_id=channel_id)
         if 'success' in request and request['success']:
-            self.active_users[user] = True
+            self.active_users[user] = {'active': True, 'request': request}
             self.save_active_users()
         if debug:
-            req = copy.deepcopy(request)
-            req['input_user'] = user
-            req['input_prompt'] = prompt
-            with open('data.json', 'w') as f:
-                data = json.dumps(req)
-                json.dump(data, f)
+            self.debug_push_prompt(user, prompt, request)
         return request
+
+    def check_if_second_comment(self, user, user_txt, channel_id, prompt):
+        if self.active_users[user]['active']:
+            self.active_users[user]['active'] = False
+            self.save_active_users()
+            if self.zero_shot(prompt, 'yes'):
+                prev_request = self.active_users[user]['request']
+                stream_id = self.channel_streams[channel_id]
+                try:
+                    self.setup_connection(stream_id)
+                    commit_id = self.commit(user, prev_request)
+                except:
+                    return {'answer': self.message_connection_error(user_txt)}
+                return {'answer': self.message_commit_ok(user_txt, commit_id)}
+            else:
+                return {'answer': self.message_commit_not_ok(user_txt)}
+        return None
+
+    @staticmethod
+    def debug_push_prompt(user, prompt, request):
+        req = copy.deepcopy(request)
+        req['input_user'] = user
+        req['input_prompt'] = prompt
+        with open('data.json', 'w') as f:
+            data = json.dumps(req)
+            json.dump(data, f)
 
 
 if __name__ == '__main__':
@@ -305,6 +416,8 @@ if __name__ == '__main__':
     ]
 
     nlp_agent = NLPAgent()
-    for query in queries:
-        request_data = nlp_agent.process_prompt(query)
-        print(request_data)
+    # for query in queries:
+    #     request_data = nlp_agent.process_prompt(query)
+    #     print(request_data)
+
+    nlp_agent.push_prompt('carlos', 'hey, can you set this channel to stream 8e6d1d1c53', '123456')

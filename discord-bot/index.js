@@ -16,6 +16,7 @@ client.on('ready', () => {
 
 let userName;
 let userRequest;
+let channelID;
 
 client.on('messageCreate', async message => {
     const messageContent = message.content;
@@ -23,12 +24,12 @@ client.on('messageCreate', async message => {
 
     if (splitMessage[0].toLowerCase() === '!speckly') {
         userName = message.author.username;
-        // const channel = message.channelId;
+        channelID = message.channelId;
         userRequest = messageContent.substring(messageContent.indexOf(' ') + 1);
 
         let result;
         app.get('/', (req, res) => {
-            const nlp_agent_py = spawn('python', ['-m', 'nlp_agent_cli', userName, userRequest]);
+            const nlp_agent_py = spawn('python', ['-m', 'nlp_agent_cli', userName, userRequest, channelID]);
             nlp_agent_py.stdout.on('data', function (data) {
                 result = data.toString();
             });

@@ -10,8 +10,7 @@ sys.path.append(str(path))
 from returnName.nlp.nlp_agent import NLPAgent
 
 nlp_agent = NLPAgent()
-user = sys.argv[1]
-prompt = sys.argv[2]
+user, prompt, channel_id = [sys.argv[i + 1] for i in range(3)]
 
 if debug:
     info = {'user': user, 'prompt': prompt}
@@ -19,6 +18,6 @@ if debug:
         data = json.dumps(info)
         json.dump(data, f)
 
-result = nlp_agent.push_prompt(user, prompt)
+result = nlp_agent.push_prompt(user, prompt, channel_id)
 result = json.dumps(result, separators=(',', ':'))
 print(str(result))
