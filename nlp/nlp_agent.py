@@ -11,11 +11,11 @@ from transformers import pipeline
 path = Path().resolve().parent.parent
 sys.path.append(str(path))
 
-# from returnName.nlp.speckle_io import SpeckleConnection, BotCommit
-# from returnName.nlp.my_token import token
+from returnName.nlp.speckle_io import SpeckleConnection, BotCommit
+from returnName.nlp.my_token import token
 
-from speckle_io import SpeckleConnection, BotCommit
-from my_token import token
+# from speckle_io import SpeckleConnection, BotCommit
+# from my_token import token
 
 
 class NLPModels:
