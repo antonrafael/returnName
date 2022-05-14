@@ -8,7 +8,7 @@ namespace SpeckleHackathonProjectRevit
     {
         public static void Load()
         {
-            var root = "";
+            var root = Directory.GetCurrentDirectory();
             var dotenv = Path.Combine(root, ".env");
             if (!File.Exists(dotenv))
                 return;
