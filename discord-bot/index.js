@@ -17,12 +17,23 @@ client.on('ready', () => {
 let userName;
 let userRequest;
 let channelID;
+let running = false;
+let runningID = '';
 
 client.on('messageCreate', async message => {
     const messageContent = message.content;
     const splitMessage = messageContent.split(' ')
 
+    if (running && message.id != runningID) {
+        // console.log(message.id);
+        // console.log(runningID);
+        // await message.reply("Sorry, I'm busy now! try again later, please.");
+        return
+    }
+
     if (splitMessage[0].toLowerCase() === '!speckly') {
+        running = true;
+        runningID = message.id
         userName = message.author.username;
         channelID = message.channelId;
         userRequest = messageContent.substring(messageContent.indexOf(' ') + 1);
@@ -57,6 +68,7 @@ client.on('messageCreate', async message => {
         });
         await httpTerminatorElm.terminate();
         console.log(`Request from ${userName} answered`);
+        running = false;
     }
 })
 
