@@ -15,10 +15,10 @@ namespace SpeckleHackathonProjectRevit.Speckle
         public static List<Request> Requests = new List<Request>();
         public static async Task TaskAsync()
         {
-            string streamId = "8e6d1d1c53";
+            string streamId = Environment.GetEnvironmentVariable("streamId");
             var branchName = "main";
             Account account = new Account();
-            account.token = "d401c67ea7661648a85f6970915df6e4a9499ca9c5";
+            account.token = Environment.GetEnvironmentVariable("api_token");
             ServerInfo serverInfo = new ServerInfo();
             serverInfo.url = "https://speckle.xyz/";
             account.serverInfo = serverInfo;

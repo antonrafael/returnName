@@ -8,12 +8,11 @@ namespace SpeckleHackathonProjectRevit
     {
         public static void Load()
         {
-            var root = Directory.GetCurrentDirectory();
-            var dotenv = Path.Combine(root, ".env");
-            if (!File.Exists(dotenv))
+            var path = "C:\\dev\\returnName\\SpeckleHackathonProjectRevit\\.env";
+            if (!File.Exists(path))
                 return;
 
-            foreach (var line in File.ReadAllLines(dotenv))
+            foreach (var line in File.ReadAllLines(path))
             {
                 var parts = line.Split('=');
 
