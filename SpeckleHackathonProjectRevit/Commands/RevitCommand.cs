@@ -51,8 +51,8 @@ namespace SpeckleHackathonProjectRevit.Commands
             {
                 RevitCommandWindow = new Window()
                 {
-                    Width = 450,
-                    Height = 800,
+                    Width = 800,
+                    Height = 550,
                     ResizeMode = 0,
                 };
 

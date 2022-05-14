@@ -29,7 +29,7 @@ namespace SpeckleHackathonProjectRevit.View
         private Window window;
         public RevitCommandView(UIDocument uiDocument, Window win)
         {
-            InitializeComponent();
+            InitializeComponent();            
             uidoc = uiDocument;
             doc = uidoc.Document;
             window = win;
@@ -38,6 +38,7 @@ namespace SpeckleHackathonProjectRevit.View
         private void getRequests_Click(object sender, RoutedEventArgs e)
         {
             List<Request> requests = Connection.Requests;
+            datagrid.ItemsSource = requests;
         }
     }
 }

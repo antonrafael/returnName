@@ -4,7 +4,7 @@ namespace SpeckleHackathonProjectRevit.Entities
 {
     public class Request
     {
-
+        public bool Check { get; set; }
         public string Field { get; set; }
         public bool Success { get; set; }
         public string Element { get; set; }
@@ -24,6 +24,7 @@ namespace SpeckleHackathonProjectRevit.Entities
             Number = number;
             Unit = unit;
             Answer = answer;
+            Check = false;
         }
     }
 
