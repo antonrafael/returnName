@@ -7,7 +7,6 @@ import json
 import re
 import requests
 import pandas as pd
-from transformers import pipeline
 
 path = Path().resolve().parent.parent
 sys.path.append(str(path))
@@ -18,8 +17,15 @@ from returnName.nlp.my_token_hf import token_hf
 
 # from speckle_io import SpeckleConnection, BotCommit
 # from my_token import token
+# from my_token_hf import token_hf
 
-hugging_face_inference = False
+hugging_face_inference = True
+
+if not hugging_face_inference:
+    from transformers import pipeline
+
+model_zero_shot = 'facebook/bart-large-mnli'
+model_question_answerer = 'distilbert-base-cased-distilled-squad'
 
 
 def query_hf(payload, model_id, api_token):
@@ -29,16 +35,21 @@ def query_hf(payload, model_id, api_token):
     return response.json()
 
 
+def query_hf_zero_shot(context, candidate_labels):
+    payload = {'inputs': context, 'parameters': {'candidate_labels': candidate_labels}}
+    return query_hf(payload, model_zero_shot, token_hf)
+
+
+def query_hf_question_answerer(question, context):
+    payload = {'inputs': {'question': question, 'context': context}}
+    return query_hf(payload, model_question_answerer, token_hf)
+
+
 class NLPModels:
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(NLPModels, cls).__new__(cls)
-            model_zero_shot = 'facebook/bart-large-mnli'
-            model_question_answerer = 'distilbert-base-cased-distilled-squad'
-            if hugging_face_inference:
-                cls.zero_shot = lambda x: query_hf(x, model_zero_shot, token_hf)
-                cls.question_answerer = lambda x: query_hf(x, model_question_answerer, token_hf)
-            else:
+            if not hugging_face_inference:
                 cls.zero_shot = pipeline('zero-shot-classification', model=model_zero_shot)
                 cls.question_answerer = pipeline('question-answering', model=model_question_answerer)
         return cls.instance
@@ -321,6 +332,9 @@ class NLPAgent(NLPModelsHelper, BotMessages):
     def __post_init__(self):
         self.fields = self.setup_fields()
         self.nlp_models = NLPModels()
+        if hugging_face_inference:
+            self.nlp_models.zero_shot = query_hf_zero_shot
+            self.nlp_models.question_answerer = query_hf_question_answerer
         self.active_users = self.load_active_users()
         self.channel_streams = self.load_channel_streams()
 
