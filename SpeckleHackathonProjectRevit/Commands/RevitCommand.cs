@@ -5,6 +5,8 @@ using SpeckleHackathonProjectRevit.View;
 using SpeckleHackathonProjectRevit.Speckle;
 using System;
 using System.Windows;
+using System.Threading.Tasks;
+using System.IO;
 
 namespace SpeckleHackathonProjectRevit.Commands
 {
@@ -19,6 +21,8 @@ namespace SpeckleHackathonProjectRevit.Commands
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
+            DotEnv.Load();
+
             //Get UIDocument
             UIDocument uidoc = commandData.Application.ActiveUIDocument;
             //GetDocument
@@ -38,10 +42,10 @@ namespace SpeckleHackathonProjectRevit.Commands
                     //TaskDialog.Show("MoveRight Test", beamTests.MoveElement20cmRight().ToString());
                     //TaskDialog.Show("MoveLeft Test", beamTests.MoveElement20cmLeft().ToString());
                 }
-
+                Run();
                 trans.Commit();
+                
 
-                Extensions.Flatten()
             }
             try
             {
@@ -64,6 +68,11 @@ namespace SpeckleHackathonProjectRevit.Commands
                 TaskDialog.Show("Error", e.Message);
                 return Result.Failed;
             }
+        }
+
+        public static async Task Run()
+        {
+            await Connection.TaskAsync();
         }
     }
 }

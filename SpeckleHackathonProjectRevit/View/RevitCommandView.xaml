@@ -7,7 +7,7 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
              Background="White">
-    <Grid>
-            
+    <Grid>        
+            <Button Name="getRequests" Content="Buttom" Margin="200" Click="getRequests_Click"></Button>
     </Grid>
 </UserControl>

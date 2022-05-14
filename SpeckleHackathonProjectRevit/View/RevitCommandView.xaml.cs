@@ -1,5 +1,7 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using SpeckleHackathonProjectRevit.Entities;
+using SpeckleHackathonProjectRevit.Speckle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +33,11 @@ namespace SpeckleHackathonProjectRevit.View
             uidoc = uiDocument;
             doc = uidoc.Document;
             window = win;
+        }
+
+        private void getRequests_Click(object sender, RoutedEventArgs e)
+        {
+            List<Request> requests = Connection.Requests;
         }
     }
 }
