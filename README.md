@@ -22,3 +22,5 @@ Usually, engineering and architecture firms, make heavy use of messaging apps su
 Discord during their daily routine. Our hack allows any traditional user to interact with a bot 
 via natural language, which will allow to commit directly to the speckle-server, and ultimately 
 trigger changes within the authoring software.
+
+![img.png](discord-bot/img/speckly_demo.png)

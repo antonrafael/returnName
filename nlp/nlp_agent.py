@@ -84,8 +84,9 @@ class BotMessages:
 
     @staticmethod
     def message_commit_ok(user_txt, server, stream_id, commit_id):
-        answer = f'Ok{user_txt}, green light then! your request has been committed (id: {commit_id})\n'
-        answer += f'https://{server}/streams/{stream_id}/commits/{commit_id}'
+        answer = f'Ok{user_txt}, green light then! your request has been committed (id: {commit_id}). '
+        answer += f'Now you can pull it from within the authoring software.\n'
+        answer += f'https://{server}/streams/{stream_id}/commits/{commit_id}.'
         return answer
 
     @staticmethod
@@ -239,7 +240,7 @@ class NLPField(NLPModelsHelper):
         txt += f' is requested to be moved {parsed_items["direction"]}'
         if 'number' not in parsed_items:
             return txt
-        txt += f' by {parsed_items["number"]} {parsed_items["unit"]}'
+        txt += f' by {parsed_items["number"]:.3f} {parsed_items["unit"]}'
         return txt
 
     def on_success(self, parsed_items, user_name=None):
@@ -374,7 +375,7 @@ class NLPAgent(NLPModelsHelper, BotMessages):
         user_txt = '' if user_name is None else f' @{user_name}'
         if not self.zero_shot(prompt, candidate_label='request'):
             return {'success': False, 'answer': self.message_not_request(user_txt)}
-        if 'stream' in prompt:
+        if 'stream' in prompt.lower():
             stream_id = self.question_answerer('what is the stream id?', prompt)
             stream_id = stream_id.split()[-1]
             if len(stream_id) == 10:
@@ -392,7 +393,7 @@ class NLPAgent(NLPModelsHelper, BotMessages):
         user_txt = '' if user is None else f' @{user}'
         if prompt.lower() == 'hello':
             return {'answer': self.message_welcoming(user_txt)}
-        if channel_id not in self.channel_streams and 'stream' not in prompt:
+        if channel_id not in self.channel_streams and 'stream' not in prompt.lower():
             return {'answer': self.message_no_stream(user_txt)}
         if user in self.active_users:
             second_comment = self.check_if_second_comment(user, user_txt, channel_id, prompt)
