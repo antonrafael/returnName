@@ -99,7 +99,7 @@ StyleCopReport.xml
 *.scc
 
 # .Env
-*.env
+.env
 
 # Chutzpah Test files
 _Chutzpah*
