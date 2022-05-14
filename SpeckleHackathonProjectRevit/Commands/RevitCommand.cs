@@ -22,6 +22,8 @@ namespace SpeckleHackathonProjectRevit.Commands
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             DotEnv.Load();
+            Run();
+            
 
             //Get UIDocument
             UIDocument uidoc = commandData.Application.ActiveUIDocument;
@@ -42,7 +44,7 @@ namespace SpeckleHackathonProjectRevit.Commands
                     TaskDialog.Show("MoveRight Test", beamTests.MoveElement20cmRight().ToString());
                     TaskDialog.Show("MoveLeft Test", beamTests.MoveElement20cmLeft().ToString());
                 }
-                RunSpeckleConnection();
+               
                 trans.Commit();  
             }
             try
@@ -68,9 +70,13 @@ namespace SpeckleHackathonProjectRevit.Commands
             }
         }
 
-        public static async Task RunSpeckleConnection()
+        public static void Run()
         {
-            await Connection.TaskAsync();
+            var task = Connection.TaskAsync();
+            task.Wait(2000);
+
         }
+
+
     }
 }

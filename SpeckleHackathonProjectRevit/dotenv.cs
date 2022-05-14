@@ -8,7 +8,7 @@ namespace SpeckleHackathonProjectRevit
     {
         public static void Load()
         {
-            var path = "C:\\dev\\returnName\\SpeckleHackathonProjectRevit\\.env";
+            var path = "C:\\dev\\SpeckleHackathonProject\\SpeckleHackathonProjectRevit\\.env";
             if (!File.Exists(path))
                 return;
 

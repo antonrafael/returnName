@@ -28,20 +28,22 @@ namespace SpeckleHackathonProjectRevit.View
         private UIDocument uidoc;
         private Document doc;
         private Window window;
-        private List<Request> Requests = Connection.Requests;
+        private List<Request> Requests;
         public RevitCommandView(UIDocument uiDocument, Window win)
         {
             InitializeComponent();            
             uidoc = uiDocument;
             doc = uidoc.Document;
-            window = win;
+            window = win;           
         }
 
         private void getRequests_click(object sender, RoutedEventArgs e)
-        {            
+        {
+            Requests = Connection.Requests;
             datagrid.ItemsSource = Requests;
         }
 
+      
         private void acceptChanges_click(object sender, RoutedEventArgs e)
         {
             BeamHandler beamHandler = new BeamHandler();
