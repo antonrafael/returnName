@@ -11,11 +11,11 @@ from transformers import pipeline
 path = Path().resolve().parent.parent
 sys.path.append(str(path))
 
-from returnName.nlp.speckle_io import SpeckleConnection, BotCommit
-from returnName.nlp.my_token import token
+# from returnName.nlp.speckle_io import SpeckleConnection, BotCommit
+# from returnName.nlp.my_token import token
 
-# from speckle_io import SpeckleConnection, BotCommit
-# from my_token import token
+from speckle_io import SpeckleConnection, BotCommit
+from my_token import token
 
 
 class NLPModels:
@@ -83,8 +83,10 @@ class BotMessages:
         return answer
 
     @staticmethod
-    def message_commit_ok(user_txt, commit_id):
-        return f'Ok{user_txt}, green light then! your request has been committed (id: {commit_id})'
+    def message_commit_ok(user_txt, server, stream_id, commit_id):
+        answer = f'Ok{user_txt}, green light then! your request has been committed (id: {commit_id})\n'
+        answer += f'https://{server}/streams/{stream_id}/commits/{commit_id}'
+        return answer
 
     @staticmethod
     def message_commit_not_ok(user_txt):
@@ -171,15 +173,40 @@ class NLPField(NLPModelsHelper):
         question = f'By how much?'
         return self.question_answerer(question, prompt)
 
-    @staticmethod
-    def amount_breakdown(amount):
-        try:
-            number = re.findall(r'(?<![a-zA-Z:])[-+]?\d*\.?\d+', amount)[0]
-        except IndexError:
-            return None
-        unit = ''.join([letter for letter in amount if letter.isalnum() and not letter.isdigit()])
-        unit = 'm' if unit == '' else unit  # defaulting to meters
-        return float(number), unit
+    def amount_breakdown(self, amount):
+        numbers = re.findall(r'(?<![a-zA-Z:])[-+]?\d*\.?\d+', amount)
+        unit = None
+        if len(numbers) == 0:
+            elements = amount.split()
+            number_found = False
+            for element in elements:
+                if self.zero_shot(element, 'number'):
+                    number = element
+                    elements.remove(number)
+                    number = float(self.zero_shot_multiple(number, [str(i) for i in range(10)]))
+                    number_found = True
+                    break
+            if not number_found:
+                return None
+            unit = elements[-1]
+        else:
+            number = numbers[0]
+        if unit is None:
+            unit = ''.join([letter for letter in amount if letter.isalnum() and not letter.isdigit()])
+            unit = 'm' if unit == '' else unit  # defaulting to meters
+        unit_names_short = ['m', 'cm', 'mm', 'in']
+        unit_names_long = ['meters', 'centimeters', 'millimeters', 'inches']
+        factors = [1., 1e-2, 1e-3, 0.0254]
+        unit_names = [*unit_names_short, *unit_names_long]
+        unit_idx = [idx for idx, u in enumerate(unit_names) if u == unit]
+        if len(unit_idx) == 0:
+            unit = self.zero_shot_multiple(unit, unit_names)
+            unit_idx = [idx for idx, u in enumerate(unit_names) if u == unit][0]
+        else:
+            unit = [*unit_names_short, *unit_names_short][unit_idx[0]]
+            unit_idx = unit_idx[0]
+        number = [*factors, *factors][unit_idx] * float(number)
+        return number, 'm'
 
     def on_fail(self, item, parsed_items=None):
         if parsed_items is None:
@@ -243,7 +270,6 @@ class NLPField(NLPModelsHelper):
             parsed_items = self.process_one_step(step_name, parsed_items, func, args, readable_value_name)
             if step_name not in parsed_items:
                 return self.discard_items(parsed_items)
-
         parsed_items['success'] = True
         parsed_items = self.parse_amount(parsed_items)
         parsed_items = self.discard_items(parsed_items)
@@ -256,13 +282,14 @@ class NLPStructuralField(NLPField):
         super().__post_init__()
         self.name = 'structural'
         self.elements = ['wall', 'slab', 'beam', 'column']
+        self.other_names = ['structural', *self.elements]
 
 
 @dataclass
 class NLPMepField(NLPField):
     def __post_init__(self):
         super().__post_init__()
-        self.name = 'mep'
+        self.name = 'MEP'
         self.other_names = ['mechanical', 'electrical', 'plumbing', 'fire protection']
         self.elements = ['duct', 'pipe', 'tray']
 
@@ -391,7 +418,7 @@ class NLPAgent(NLPModelsHelper, BotMessages):
                     commit_id = self.commit(user, prev_request)
                 except:
                     return {'answer': self.message_connection_error(user_txt)}
-                return {'answer': self.message_commit_ok(user_txt, commit_id)}
+                return {'answer': self.message_commit_ok(user_txt, self.connection.server, stream_id, commit_id)}
             else:
                 return {'answer': self.message_commit_not_ok(user_txt)}
         return None
@@ -411,13 +438,14 @@ if __name__ == '__main__':
         'Please, lower by 0.2 m the height of beam B125',
         'Can you move 0.5m to the front a wall W15?',
         'Displace column C27 one meter to the left, please',
-        'Displace column C27 1 m to the left, please',
+        'Displace column C27 1 mm to the left, please',
+        'Displace column C27 two inches to the left, please',
         'Change the position of duct D01 by moving it back 32 cm, please'
     ]
 
     nlp_agent = NLPAgent()
-    # for query in queries:
-    #     request_data = nlp_agent.process_prompt(query)
-    #     print(request_data)
+    for query in queries:
+        request_data = nlp_agent.process_prompt(query)
+        print(request_data)
 
-    nlp_agent.push_prompt('carlos', 'hey, can you set this channel to stream 8e6d1d1c53', '123456')
+    # nlp_agent.push_prompt('carlos', 'hey, can you set this channel to stream 8e6d1d1c53', '123456')
