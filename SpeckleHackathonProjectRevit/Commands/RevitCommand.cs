@@ -17,7 +17,7 @@ namespace SpeckleHackathonProjectRevit.Commands
     public class RevitCommand : IExternalCommand
     {
         public static Window RevitCommandWindow { get; set; }
-        public bool Tests = true;
+        public bool Tests = false;
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -28,24 +28,22 @@ namespace SpeckleHackathonProjectRevit.Commands
             //GetDocument
             Document doc = uidoc.Document;
 
-            using (Transaction trans = new Transaction(doc, "Speckly Changing Elements"))
+            using (Transaction trans = new Transaction(doc, "Speckly Changing Elements Tests"))
             {
+                
                 trans.Start();
-
                 if (Tests)
                 {
                     BeamTests beamTests = new BeamTests();
                     beamTests.doc = doc;
-                    //TaskDialog.Show("Collector Test", beamTests.GetElementsShouldReturnSix().ToString());
-                    //TaskDialog.Show("MoveDown Test", beamTests.MoveElement20cmDown().ToString());
-                    //TaskDialog.Show("MoveUp Test", beamTests.MoveElement20cmUp().ToString());
-                    //TaskDialog.Show("MoveRight Test", beamTests.MoveElement20cmRight().ToString());
-                    //TaskDialog.Show("MoveLeft Test", beamTests.MoveElement20cmLeft().ToString());
+                    TaskDialog.Show("Collector Test", beamTests.GetElementsShouldReturnSix().ToString());
+                    TaskDialog.Show("MoveDown Test", beamTests.MoveElement20cmDown().ToString());
+                    TaskDialog.Show("MoveUp Test", beamTests.MoveElement20cmUp().ToString());
+                    TaskDialog.Show("MoveRight Test", beamTests.MoveElement20cmRight().ToString());
+                    TaskDialog.Show("MoveLeft Test", beamTests.MoveElement20cmLeft().ToString());
                 }
-                Run();
-                trans.Commit();
-                
-
+                RunSpeckleConnection();
+                trans.Commit();  
             }
             try
             {
@@ -70,7 +68,7 @@ namespace SpeckleHackathonProjectRevit.Commands
             }
         }
 
-        public static async Task Run()
+        public static async Task RunSpeckleConnection()
         {
             await Connection.TaskAsync();
         }

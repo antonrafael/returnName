@@ -12,9 +12,7 @@ namespace SpeckleHackathonProjectRevit.Tests
 
         public BeamCommand setupTests()
         {
-            BeamCommand beamCommand = new BeamCommand();
-            beamCommand.RequestItem = RequestItem;
-            beamCommand.doc = doc;
+            BeamCommand beamCommand = new BeamCommand(RequestItem, doc);
             beamCommand.GetElements();
             return beamCommand;
         }

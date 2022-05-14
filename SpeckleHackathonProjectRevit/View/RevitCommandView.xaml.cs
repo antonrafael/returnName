@@ -1,5 +1,6 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using SpeckleHackathonProjectRevit.Commands;
 using SpeckleHackathonProjectRevit.Entities;
 using SpeckleHackathonProjectRevit.Speckle;
 using System;
@@ -27,6 +28,7 @@ namespace SpeckleHackathonProjectRevit.View
         private UIDocument uidoc;
         private Document doc;
         private Window window;
+        private List<Request> Requests = Connection.Requests;
         public RevitCommandView(UIDocument uiDocument, Window win)
         {
             InitializeComponent();            
@@ -35,10 +37,17 @@ namespace SpeckleHackathonProjectRevit.View
             window = win;
         }
 
-        private void getRequests_Click(object sender, RoutedEventArgs e)
+        private void getRequests_click(object sender, RoutedEventArgs e)
+        {            
+            datagrid.ItemsSource = Requests;
+        }
+
+        private void acceptChanges_click(object sender, RoutedEventArgs e)
         {
-            List<Request> requests = Connection.Requests;
-            datagrid.ItemsSource = requests;
+            BeamHandler beamHandler = new BeamHandler();
+            beamHandler.Requests = Requests.Where(x => x.Check && x.Element == "beam").ToList();
+            beamHandler.doc = doc;
+            beamHandler.Handle();
         }
     }
 }

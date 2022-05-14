@@ -51,14 +51,22 @@ namespace SpeckleHackathonProjectRevit.Speckle
                         string direction = dict.Where(pair => pair.Key == "direction").Select(pair => pair.Value).FirstOrDefault().ToString();
                         string element_name = dict.Where(pair => pair.Key == "element_name").Select(pair => pair.Value).FirstOrDefault().ToString();
 
-                        bool successBool = false;
-                        if (success == "true")
-                            successBool = true;
+                        if (element_name != "beam")
+                        {
+                            bool successBool = false;
+                            if (success == "true")
+                                successBool = true;
 
-                        double numberDouble = Convert.ToDouble(number);
+                            double numberDouble = Convert.ToDouble(number);
+                            if (unit == "m")
+                                numberDouble = numberDouble * 3.28084;
+                            if (unit == "cm")
+                                numberDouble = numberDouble * 0.0328084;
+                            numberDouble = Math.Round(numberDouble, 2);
 
-                        Request request = new Request(field, successBool, element, element_name, direction, numberDouble, unit, answer);
-                        Requests.Add(request);
+                            Request request = new Request(field, successBool, element, element_name, direction, numberDouble, unit, answer);
+                            Requests.Add(request);
+                        }                        
                     }
                     catch { }
                 }

@@ -15,16 +15,16 @@
             AutoGenerateColumns="False">
                 <DataGrid.Columns>
                     <DataGridCheckBoxColumn Width="50" Binding="{Binding Check}" Header="Accept"/>
-                    <DataGridTextColumn Width="100" Binding="{Binding Element}" Header="Element Type" IsReadOnly="True"/>
-                    <DataGridTextColumn Width="100" Binding="{Binding ElementName}" Header="Element Name" IsReadOnly="True"/>
-                    <DataGridTextColumn Width="100" Binding="{Binding Direction}" Header="Direction" IsReadOnly="True"/>
-                    <DataGridTextColumn Width="100" Binding="{Binding Number}" Header="Moving Size" IsReadOnly="True"/>
-                    <DataGridTextColumn Width="*" Binding="{Binding Unit}" Header="Unit" IsReadOnly="True"/>
+                    <DataGridTextColumn Width="150" Binding="{Binding Element}" Header="Element Type" IsReadOnly="True"/>
+                    <DataGridTextColumn Width="150" Binding="{Binding ElementName}" Header="Element Name" IsReadOnly="True"/>
+                    <DataGridTextColumn Width="150" Binding="{Binding Direction}" Header="Direction" IsReadOnly="True"/>
+                    <DataGridTextColumn Width="*" Binding="{Binding Number}" Header="Moving Size" IsReadOnly="True"/>
+                    
 
                 </DataGrid.Columns>
             </DataGrid>
-            <Button x:Name="getRequests" Content="Get Speckle Requests" Click="getRequests_Click" Width="344" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="30"/>
-            <Button Name="acceptChanges" Content="Accept Changes" Click="getRequests_Click" Width="344" HorizontalAlignment="Right" VerticalAlignment="Bottom" Height="30"></Button>
+            <Button x:Name="getRequests" Content="Get Speckle Requests" Click="getRequests_click" Width="344" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="30"/>
+            <Button Name="acceptChanges" Content="Accept Changes" Click="acceptChanges_click" Width="344" HorizontalAlignment="Right" VerticalAlignment="Bottom" Height="30"></Button>
         </Grid>
     </Border>
 </UserControl>

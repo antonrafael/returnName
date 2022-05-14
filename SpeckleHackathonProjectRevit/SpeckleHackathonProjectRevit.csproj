@@ -123,6 +123,7 @@
   <ItemGroup>
     <None Include=".env" />
     <Compile Include="Commands\BeamCommand.cs" />
+    <Compile Include="Commands\BeamHandler.cs" />
     <Compile Include="Commands\RevitCommand.cs" />
     <Compile Include="dotenv.cs" />
     <Compile Include="Entities\Request.cs" />
@@ -152,6 +153,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Resources\images\icon16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\Themes\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.115.5\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets" Condition="Exists('..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.115.5\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" />
