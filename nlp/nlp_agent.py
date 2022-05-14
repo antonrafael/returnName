@@ -5,6 +5,7 @@ import sys
 import copy
 import json
 import re
+import requests
 import pandas as pd
 from transformers import pipeline
 
@@ -13,17 +14,33 @@ sys.path.append(str(path))
 
 from returnName.nlp.speckle_io import SpeckleConnection, BotCommit
 from returnName.nlp.my_token import token
+from returnName.nlp.my_token_hf import token_hf
 
 # from speckle_io import SpeckleConnection, BotCommit
 # from my_token import token
+
+hugging_face_inference = False
+
+
+def query_hf(payload, model_id, api_token):
+    headers = {'Authorization': f'Bearer {api_token}'}
+    API_URL = f'https://api-inference.huggingface.co/models/{model_id}'
+    response = requests.post(API_URL, headers=headers, json=payload)
+    return response.json()
 
 
 class NLPModels:
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(NLPModels, cls).__new__(cls)
-            cls.zero_shot = pipeline('zero-shot-classification', model='facebook/bart-large-mnli')
-            cls.question_answerer = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
+            model_zero_shot = 'facebook/bart-large-mnli'
+            model_question_answerer = 'distilbert-base-cased-distilled-squad'
+            if hugging_face_inference:
+                cls.zero_shot = lambda x: query_hf(x, model_zero_shot, token_hf)
+                cls.question_answerer = lambda x: query_hf(x, model_question_answerer, token_hf)
+            else:
+                cls.zero_shot = pipeline('zero-shot-classification', model=model_zero_shot)
+                cls.question_answerer = pipeline('question-answering', model=model_question_answerer)
         return cls.instance
 
 
