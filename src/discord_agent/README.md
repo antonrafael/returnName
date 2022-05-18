@@ -12,4 +12,4 @@ in order for the bot to be tried out.
 
 4. Chat with Speckly! Your comment needs to begin with **!speckly** 
 
-![img.png](img/speckly_demo.png)
+![img.png](../../doc/speckly_demo_discord.png)

@@ -5,9 +5,9 @@ import json
 
 debug = False
 
-path = Path().resolve().parent.parent
+path = Path().resolve().parent.parent.parent
 sys.path.append(str(path))
-from returnName.nlp.nlp_agent import NLPAgent
+from returnName.natural_language_processing.nlp_agent import NLPAgent
 
 nlp_agent = NLPAgent()
 user, prompt, channel_id = [sys.argv[i + 1] for i in range(3)]

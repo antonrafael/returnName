@@ -99,7 +99,7 @@ StyleCopReport.xml
 *.scc
 
 # .Env
-.env
+../discord_agent/.env
 
 # Chutzpah Test files
 _Chutzpah*
