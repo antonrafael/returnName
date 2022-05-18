@@ -11,9 +11,9 @@ import pandas as pd
 path = Path().resolve().parent.parent
 sys.path.append(str(path))
 
-from returnName.nlp.speckle_io import SpeckleConnection, BotCommit
-from returnName.nlp.my_token import token
-from returnName.nlp.my_token_hf import token_hf
+from src.natural_language_processing.speckle_io import SpeckleConnection, BotCommit
+from src.natural_language_processing.my_token import token
+from src.natural_language_processing.my_token_hf import token_hf
 
 # from speckle_io import SpeckleConnection, BotCommit
 # from my_token import token
