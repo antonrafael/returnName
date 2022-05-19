@@ -40,6 +40,8 @@ the arranged Speckle Stream.
 At this point, a Revit add-in allows for listing and reviewing the commits of the relevant Stream ID coming from 
 the messaging app, to then carry them out within the software, if agreed.
 
+Since there are already some practical grasshopper components from Speckle, we can also utilize them to receive the Speckle commit change(sent from Speckly) in grasshopper via RhinoInsideRevit.
 ## Screenshots
 ![img.png](doc/speckly_demo_discord.png)
 ![img.png](doc/speckly_demo_revit.png)
+![img.png](doc/speckly_demo_rhino.png)
