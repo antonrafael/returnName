@@ -26,8 +26,7 @@ trigger changes within the authoring software.
 ## Technical implementation description
 Firstly, a backend for the agent is built using the Node.js [discord package](https://discord.js.org/). 
 For messaging events, it checks whether the message begins with the reserved keyword *!speckly*, and then 
-runs the Python script with the NLP logic by using Node's *child_process*. It is able to send the 
-output from that script to a localhost port by usign *express*, and then read it back by using *axios*. 
+runs the Python script with the NLP logic by using Node's *child_process*.
 
 The Machine Learning part is carried out in the Python script with the help of the 
 [Hugging Face transformers library](https://github.com/huggingface/transformers). Successive queries are run 
