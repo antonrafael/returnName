@@ -53,7 +53,6 @@ if 'blender' in sys.executable:
             setattr(bpy.types.Scene, prop_name, prop_value)
 
         bpy.app.handlers.load_post.append(load_handler)
-        bpy.ops.speckly.users_load()
 
     def unregister():
         bpy.app.handlers.load_post.remove(load_handler)

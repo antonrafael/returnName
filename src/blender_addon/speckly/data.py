@@ -1,6 +1,7 @@
 from datetime import datetime
 import bpy
 from bpy_speckle.clients import speckle_clients
+from blenderbim import tool
 import mathutils
 from .io import SpeckleConnection, BotCommit
 
@@ -77,10 +78,10 @@ class SpecklyData:
         if ifc_class is None:
             return None
         else:
-            try:
-                elements = cls.data['file'].by_type(ifc_class)
-            except AttributeError:
-                return None
+            file = tool.Ifc.get()
+            cls.data['file'] = file
+            if file is None: return None
+            elements = cls.data['file'].by_type(ifc_class)
             elements_dict = {element.Name: element for element in elements}
             return elements_dict[element_name] if element_name in elements_dict else None
 
@@ -93,19 +94,22 @@ class SpecklyData:
 
     @classmethod
     def move(cls, bl_element, disp_vector):
-        bl_element.location += mathutils.Vector(*disp_vector)
+        bl_element.location += mathutils.Vector(disp_vector)
 
     @classmethod
     def apply_commit(cls):
-        ifc_class = cls.ifc_class(cls.data['element_type'])  ###
+        ifc_class = cls.ifc_class(cls.data['element_type'])
         if ifc_class is None:
             cls.data['request_result'] = 'IFC class not found!'
+            return
         ifc_element = cls.get_ifc_element(cls.data['element_name'], ifc_class)
         if ifc_element is None:
             cls.data['request_result'] = 'IFC element not found!'
+            return
         bl_element = cls.get_bl_element(ifc_element)
         if bl_element is None:
             cls.data['request_result'] = 'Blender element not found!'
+            return
         cls.move(bl_element, cls.data['disp_vector'])
         cls.data['request_result'] = 'Done!'
 
@@ -152,8 +156,9 @@ class SpecklyData:
         commit = cls.data['commit']
         bot_commit = cls.data['connection'].receive()
         if not isinstance(bot_commit, BotCommit) or not hasattr(bot_commit, 'request'):
-            elements = None
+            request = None
             request_details = None
+            elements = None
         else:
             request = bot_commit.request
             request_details = [
@@ -165,7 +170,29 @@ class SpecklyData:
                  'item': ['number', 'unit', 'direction'], 'fmt': ['.3f', '', ''], 'txt': f'Displacement: __ __ __'}
             ]
             elements = cls.get_requested_elements(request_details)
-        return commit, elements, request_details
+        cls.store_bot_commit_params(request)
+        return bot_commit, elements, request_details
+
+    @classmethod
+    def store_bot_commit_params(cls, request):
+        cls.data['element_type'] = request['element'] if 'element' in request else ''
+        cls.data['element_name'] = request['element_name'] if 'element_name' in request else ''
+        cls.setup_unit_vector(request['direction'])
+
+    @classmethod
+    def setup_unit_vector(cls, direction):
+        vectors = {
+            'up': mathutils.Vector((0., 0., 1.)),
+            'down': mathutils.Vector((0., 0., -1.)),
+            'front': mathutils.Vector((0., -1., 0.)),
+            'back': mathutils.Vector((0., 1., 0.)),
+            'left': mathutils.Vector((-1., 0., 0.)),
+            'right': mathutils.Vector((1., 0., 0.))
+        }
+        if direction not in vectors:
+            cls.data['request_result'] = 'Unknown direction!'
+            cls.data['disp_vector'] = mathutils.Vector((0., 0., 0.))
+        cls.data['disp_vector'] = vectors[direction]
 
     @staticmethod
     def request_time(created_at):
